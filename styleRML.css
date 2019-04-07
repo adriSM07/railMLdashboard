@@ -1,0 +1,36 @@
+h1 {
+        font-family: georgia;
+        color: cadetblue;
+           
+    margin: 50px;
+    }
+
+h2 {
+        font-family: georgia;
+        color: cadetblue;
+        margin: 50px;
+    }
+
+p{
+    font-family: georgia;
+    margin: 50px
+}
+
+#logo{
+     
+    vertical-align: top;
+    float: :left;
+}
+
+#author{
+   position:absolute;
+  		left:500px;
+  		top:650px;
+    
+}
+
+#railMLFile{
+    left:500px;
+  		top:650px;
+    
+}
