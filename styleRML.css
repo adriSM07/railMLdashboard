@@ -30,7 +30,22 @@ p{
 }
 
 #railMLFile{
+    position:absolute;
     left:500px;
-  		top:650px;
+  		top:350px;
+    
+}
+
+#run{
+    position:absolute;
+    left:500px;
+    top: 450px;
+    
+}
+
+a{
+    position:absolute;
+    left:500px;
+    top: 650px;
     
 }
