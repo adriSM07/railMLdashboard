@@ -1,0 +1,216 @@
+import base64
+import datetime
+import io
+
+import dash
+from dash.dependencies import Input, Output, State
+import dash_core_components as dcc
+import dash_html_components as html
+import dash_table
+import xml.etree.cElementTree as et
+
+import pandas as pd
+from pandas import DataFrame
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+tree = et.parse('railML_SimpleExample_v11_railML3-1_01.xml')
+root = tree.getroot()
+id = []
+type = []
+
+for child in root:
+    if '{http://www.railml.org/schemas/3.1}infrastructure' == child.tag:
+        for secondChild in child:
+            if '{http://www.railml.org/schemas/3.1}functionalInfrastructure' == secondChild.tag:
+                for thirdChild in secondChild:
+                    if '{http://www.railml.org/schemas/3.1}signals' == thirdChild.tag:
+                        for fourthChild in thirdChild:
+                            id.append(fourthChild.get('id'))
+                            type.append(fourthChild.get('type'))
+
+signals = {"id": id, "type": type}
+signalsFrm: DataFrame = pd.DataFrame(signals)
+
+app.layout = html.Div([
+    html.H1(children='RailMl Dashboard', style={'textAlign': 'center'}),
+    html.H3(children='Generate a dashboard from a RailML file', style={'textAlign': 'center'}),
+    dcc.Upload(
+        id='upload-data',
+        children=html.Div([
+            'Drag and Drop or ',
+            html.A('Select Files')
+        ]),
+        style={
+            'width': '100%',
+            'height': '60px',
+            'lineHeight': '60px',
+            'borderWidth': '1px',
+            'borderStyle': 'dashed',
+            'borderRadius': '5px',
+            'textAlign': 'center',
+            'margin': '10px'
+        },
+        # Allow multiple files to be uploaded
+        multiple=True
+    ),
+    dcc.Upload(
+        id='upload-data-2',
+        children=html.Div([
+            'Drag and Drop or ',
+            html.A('Select Files')
+        ]),
+        style={
+            'width': '100%',
+            'height': '60px',
+            'lineHeight': '60px',
+            'borderWidth': '1px',
+            'borderStyle': 'dashed',
+            'borderRadius': '5px',
+            'textAlign': 'center',
+            'margin': '10px'
+        },
+        # Allow multiple files to be uploaded
+        multiple=True
+    ),
+    html.Div(id='output-data-upload'),
+    html.Div(id='output-data-upload-2'),
+    dash_table.DataTable(
+        id="dataTable",
+        style_data={'whiteSpace': 'normal'},
+        css=[{
+            'selector': '.dash-cell div.dash-cell-value',
+            'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
+        data=signalsFrm.to_dict('records'),
+        columns=[{'id': i, 'type': i} for i in signalsFrm.columns]
+    ),
+    dcc.Graph(
+        id='example-graph',
+        figure={
+            'data': [
+                {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
+                {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'MontrĂ©al'},
+            ],
+            'layout': {
+                'title': 'Dash Data Visualization'
+            }
+        }
+    ),
+    html.A(href='http://www.railml.org/en/', children='www.railml.org'),
+
+])
+
+def parse_contents(contents, filename, date):
+    content_type, content_string = contents.split(',')
+
+    decoded = base64.b64decode(content_string)
+
+    try:
+        if 'xml' in filename:
+            # Assume that the user uploaded a XML file
+            tree_2 = et.parse(io.StringIO(decoded.decode('utf-8')))
+            root_2 = tree_2.getroot()
+            id_2 = []
+            type_2 = []
+
+            for child_2 in root_2:
+                if '{http://www.railml.org/schemas/3.1}infrastructure' == child_2.tag:
+                    for secondChild_2 in child_2:
+                        if '{http://www.railml.org/schemas/3.1}functionalInfrastructure' == secondChild_2.tag:
+                            for thirdChild_2 in secondChild_2:
+                                if '{http://www.railml.org/schemas/3.1}signals' == thirdChild_2.tag:
+                                    for fourthChild_2 in thirdChild_2:
+                                        id_2.append(fourthChild_2.get('id'))
+                                        type_2.append(fourthChild_2.get('type'))
+
+            signals_2 = {"id": id, "type": type}
+            signalsFrm_2: DataFrame = pd.DataFrame(signals_2)
+
+    except Exception as e:
+        print(e)
+        return html.Div([
+            'There was an error processing this file.'
+        ])
+
+    return html.Div([
+        html.H5(children=filename),
+        html.H6(children=datetime.datetime.fromtimestamp(date)),
+        dash_table.DataTable(
+            id="dataTable2",
+            style_data={'whiteSpace': 'normal'},
+            css=[{
+                'selector': '.dash-cell div.dash-cell-value',
+                'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
+            data=signalsFrm_2.to_dict('records'),
+            columns=[{'id': i, 'type': i} for i in signalsFrm_2.columns]
+            ),
+
+            html.Hr(),  # horizontal line
+            # For debugging, display the raw contents provided by the web browser
+            html.Div(children='Raw Content'),
+            html.Pre(contents[0:200] + '...', style={
+                    'whiteSpace': 'pre-wrap',
+                    'wordBreak': 'break-all'
+                        })
+            ])
+
+#def parse_contents(contents, filename, date):
+ #   content_type, content_string = contents.split(',')
+
+    #decoded = base64.b64decode(content_string)
+#-    try:
+     #   if 'csv' in filename:
+      #      # Assume that the user uploaded a CSV file
+       #     df = pd.read_csv(
+        #        io.StringIO(decoded.decode('utf-8')))
+        #elif 'xls' in filename:
+            # Assume that the user uploaded an excel file
+         #   df = pd.read_excel(io.BytesIO(decoded))
+    #except Exception as e:
+     #   print(e)
+      #  return html.Div([
+       #     'There was an error processing this file.'
+        #])
+
+    #return html.Div([
+        #html.H5(children=filename),
+        #html.H6(children=datetime.datetime.fromtimestamp(date)),
+
+        #dash_table.DataTable(
+           # id="dataTable",
+          #  data=df.to_dict('records'),
+         #   columns=[{'name': i, 'id': i} for i in df.columns]
+        #),
+
+        #html.Hr(),  # horizontal line
+
+        # For debugging, display the raw contents provided by the web browser
+        #html.Div(children='Raw Content'),
+       # html.Pre(contents[0:200] + '...', style={
+      #      'whiteSpace': 'pre-wrap',
+      #      'wordBreak': 'break-all'
+     #   })
+    #])
+
+
+@app.callback(Output('output-data-upload-2', 'children'),
+              [Input('upload-data-2', 'contents')],
+              [State('upload-data-2', 'filename'),
+               State('upload-data-2', 'last_modified')])
+
+@app.callback(Output('output-data-upload', 'children'),
+              [Input('upload-data', 'contents')],
+              [State('upload-data', 'filename'),
+               State('upload-data', 'last_modified')])
+def update_output(list_of_contents, list_of_names, list_of_dates):
+    if list_of_contents is not None:
+        children = [
+            parse_contents(c, n, d) for c, n, d in
+            zip(list_of_contents, list_of_names, list_of_dates)]
+        return children
+
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
