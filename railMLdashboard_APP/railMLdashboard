@@ -96,11 +96,17 @@ def parse_contents(contents, filename, date):
             # tree_2 = et.parse(io.StringIO(decoded.decode('utf-8')))
             tree_2 = et.parse(filename)
             root_2 = tree_2.getroot()
+            projectName = ''
             id_signal = []
             type_signal = []
             id_switch = []
             defaultCourse_switch = []
             type_switch = []
+            id_track = []
+            type_track = []
+            id_LX = []
+            activation_LX = []
+            name_LX =[]
 
             for child_2 in root_2:
                 if '{http://www.railml.org/schemas/3.1}infrastructure' == child_2.tag:
@@ -116,15 +122,37 @@ def parse_contents(contents, filename, date):
                                         id_switch.append(fourthChild_3.get('id'))
                                         defaultCourse_switch.append(fourthChild_3.get('defaultCourse'))
                                         type_switch.append(fourthChild_3.get('type'))
-            #SIGNALS
+                                elif '{http://www.railml.org/schemas/3.1}tracks' == thirdChild_2.tag:
+                                    for fourthChild_4 in thirdChild_2:
+                                        id_track.append(fourthChild_4.get('id'))
+                                        type_track.append(fourthChild_4.get('type'))
+                                elif '{http://www.railml.org/schemas/3.1}levelCrossings' == thirdChild_2.tag:
+                                    for fourthChild_5 in thirdChild_2:
+                                        id_LX.append(fourthChild_5.get('id'))
+                                        activation_LX.append(fourthChild_5.get('activation'))
+                                        for fithChild in fourthChild_5:
+                                            if '{http://www.railml.org/schemas/3.1}name'==fithChild.tag:
+                                                name_LX.append(fithChild.get('name'))
+                elif '{http://www.railml.org/schemas/3.1}metadata' == child_2.tag:
+                    for secondChild_3 in child_2:
+                        if '{http://purl.org/dc/elements/1.1/}title' == secondChild_3.tag:
+                            projectName = secondChild_3.text
+
+            # SIGNALS
             signals_2 = {"id": id_signal, "type": type_signal}
             signalsFrm_2: DataFrame = pd.DataFrame(signals_2)
-            numSignal = go.Bar(x=1, y=len(id_signal), name='Signals')
-            #SWITCH
+            # numSignal = go.Bar(x=1, y=len(id_signal), name='Signals')
+            # SWITCH
             switch = {"id": id_switch, "defaultCourse": defaultCourse_switch, "type": type_switch}
             switchFrm: DataFrame = pd.DataFrame(switch)
-            numSwitch = go.Bar(x=2, y=len(id_switch), name='Switches')
+            # numSwitch = go.Bar(x=2, y=len(id_switch), name='Switches')
             numElements = [len(id_signal), len(id_switch)]
+            #TRACKS
+            track = {"id": id_track,  "type": type_track}
+            trackFrm: DataFrame = pd.DataFrame(track)
+            # LX
+            levelCrossing = {"id": id_LX, "name": name_LX, "activation": activation_LX}
+            levelCrossingFrm: DataFrame = pd.DataFrame(levelCrossing)
 
     except Exception as e:
         print(e)
@@ -133,16 +161,27 @@ def parse_contents(contents, filename, date):
         ])
 
     plot = html.Div([
+        html.H4(children='Project Name: ' + projectName),
         html.H5(children=filename),
         html.H6(children=datetime.datetime.fromtimestamp(date)),
         dcc.Graph(
             id='elements-graph',
             figure={
-                'data': [numSignal, numSwitch],
-                'layout': go.Layout(title='Elements', barmode='stack')
+                'data': [
+                    {'x': [1], 'y': [len(id_signal)], 'type': 'bar', 'name': 'Signals'},
+                    {'x': [2], 'y': [len(id_switch)], 'type': 'bar', 'name': 'Switches'},
+                    {'x': [3], 'y': [len(id_track)], 'type': 'bar', 'name': 'Tracks'},
+                    {'x': [4], 'y': [len(id_LX)], 'type': 'bar', 'name': 'Level Crossings'},
+                ],
+                'layout': {
+                    'title': 'Elements Graph'
                 }
-
+            }
         ),
+
+        html.Hr(),  # horizontal line
+
+        html.H6(children='Signals'),
         dash_table.DataTable(
             id="dataTable2",
             style_data={'whiteSpace': 'normal'},
@@ -150,11 +189,17 @@ def parse_contents(contents, filename, date):
                 'selector': '.dash-cell div.dash-cell-value',
                 'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
             data=signalsFrm_2.to_dict('records'),
-            columns=[{'id': i, 'name': i} for i in signalsFrm_2.columns]
+            columns=[{'id': i, 'name': i} for i in signalsFrm_2.columns],
+            # style_as_list_view=True,
+            style_header={
+                'backgroundColor': 'white',
+                'fontWeight': 'bold'
+            },
         ),
 
         html.Hr(),  # horizontal line
 
+        html.H6(children='Switches'),
         dash_table.DataTable(
             id="dataTableSwitch",
             style_data={'whiteSpace': 'normal'},
@@ -164,6 +209,34 @@ def parse_contents(contents, filename, date):
             data=switchFrm.to_dict('records'),
             columns=[{'id': i, 'name': i} for i in switchFrm.columns]
         ),
+
+        html.Hr(),  # horizontal line
+
+        html.H6(children='Tracks'),
+        dash_table.DataTable(
+            id="dataTableTracks",
+            style_data={'whiteSpace': 'normal'},
+            css=[{
+                'selector': '.dash-cell div.dash-cell-value',
+                'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
+            data=trackFrm.to_dict('records'),
+            columns=[{'id': i, 'name': i} for i in trackFrm.columns]
+        ),
+
+        html.Hr(),  # horizontal line
+
+        html.H6(children='Level Crossings'),
+        dash_table.DataTable(
+            id="dataTableLX",
+            style_data={'whiteSpace': 'normal'},
+            css=[{
+                'selector': '.dash-cell div.dash-cell-value',
+                'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
+            data=levelCrossingFrm.to_dict('records'),
+            columns=[{'id': i, 'name': i} for i in levelCrossingFrm.columns]
+        ),
+
+        html.Hr(),  # horizontal line
     ])
     return plot
 
