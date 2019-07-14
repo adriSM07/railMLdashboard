@@ -80,7 +80,7 @@ app.layout = html.Div([
             }
         }
     ),
-    html.A(href='http://www.railml.org/en/', children='www.railml.org'),
+    html.A(href='http://www.railml.org/en/', children='www.railml.org', style={'textAlign': 'center'}),
 
 ])
 
@@ -97,8 +97,12 @@ def parse_contents(contents, filename, date):
             tree_2 = et.parse(filename)
             root_2 = tree_2.getroot()
             projectName = ''
+            num = 0
             id_signal = []
             type_signal = []
+            name_signal = []
+            pos_signal = []
+            dic_signal = {}
             id_switch = []
             defaultCourse_switch = []
             type_switch = []
@@ -106,7 +110,7 @@ def parse_contents(contents, filename, date):
             type_track = []
             id_LX = []
             activation_LX = []
-            name_LX =[]
+            name_LX = []
 
             for child_2 in root_2:
                 if '{http://www.railml.org/schemas/3.1}infrastructure' == child_2.tag:
@@ -117,6 +121,18 @@ def parse_contents(contents, filename, date):
                                     for fourthChild_2 in thirdChild_2:
                                         id_signal.append(fourthChild_2.get('id'))
                                         type_signal.append(fourthChild_2.get('type'))
+                                        for sixChild in fourthChild_2:
+                                            if '{http://www.railml.org/schemas/3.1}name' == sixChild.tag:
+                                                dic_signal.update({fourthChild_2.get('id'): sixChild.get('name')})
+                                                name_signal.append(sixChild.get('name'))
+                                            elif '{http://www.railml.org/schemas/3.1}spotLocation' != sixChild.tag and '{http://www.railml.org/schemas/3.1}speedSignal' != sixChild.tag and '{http://www.railml.org/schemas/3.1}etcsSignal' != sixChild.tag:
+                                                name_signal.append("-")
+                                        num = num + 1
+                                        if len(name_signal) != num:
+                                            name_signal.append('-')
+                                        for sevenChild in fourthChild_2:
+                                            if '{http://www.railml.org/schemas/3.1}spotLocation' == sevenChild.tag:
+                                                pos_signal.append(sevenChild.get('pos'))
                                 elif '{http://www.railml.org/schemas/3.1}switches' == thirdChild_2.tag:
                                     for fourthChild_3 in thirdChild_2:
                                         id_switch.append(fourthChild_3.get('id'))
@@ -131,7 +147,7 @@ def parse_contents(contents, filename, date):
                                         id_LX.append(fourthChild_5.get('id'))
                                         activation_LX.append(fourthChild_5.get('activation'))
                                         for fithChild in fourthChild_5:
-                                            if '{http://www.railml.org/schemas/3.1}name'==fithChild.tag:
+                                            if '{http://www.railml.org/schemas/3.1}name' == fithChild.tag:
                                                 name_LX.append(fithChild.get('name'))
                 elif '{http://www.railml.org/schemas/3.1}metadata' == child_2.tag:
                     for secondChild_3 in child_2:
@@ -139,8 +155,24 @@ def parse_contents(contents, filename, date):
                             projectName = secondChild_3.text
 
             # SIGNALS
-            signals_2 = {"id": id_signal, "type": type_signal}
+            signals_2 = {"ID": id_signal, "Type": type_signal, "Name": name_signal, "Position": pos_signal}
             signalsFrm_2: DataFrame = pd.DataFrame(signals_2)
+            main_signals = 0
+            distant_signal = 0
+            shunting_signal = 0
+            speed_limit_signal = 0
+            speed_limit_distant_signal = 0
+            for i in type_signal:
+                if i == 'main':
+                    main_signals = main_signals + 1
+                elif i == 'distant':
+                    distant_signal = distant_signal + 1
+                elif i == 'shunting':
+                    shunting_signal = shunting_signal + 1
+                elif i == 'speed_limit':
+                    speed_limit_signal = speed_limit_signal + 1
+                elif i == 'speed_limit_distant':
+                    speed_limit_distant_signal = speed_limit_distant_signal + 1
             # numSignal = go.Bar(x=1, y=len(id_signal), name='Signals')
             # SWITCH
             switch = {"id": id_switch, "defaultCourse": defaultCourse_switch, "type": type_switch}
@@ -161,9 +193,9 @@ def parse_contents(contents, filename, date):
         ])
 
     plot = html.Div([
-        html.H4(children='Project Name: ' + projectName),
-        html.H5(children=filename),
-        html.H6(children=datetime.datetime.fromtimestamp(date)),
+        html.H4(children='Project Name: ' + projectName, style={'textAlign': 'center'}),
+        html.H5(children='File Name: ' + filename, style={'textAlign': 'center'}),
+        html.H6(children=datetime.datetime.fromtimestamp(date), style={'textAlign': 'center'}),
         dcc.Graph(
             id='elements-graph',
             figure={
@@ -181,7 +213,22 @@ def parse_contents(contents, filename, date):
 
         html.Hr(),  # horizontal line
 
-        html.H6(children='Signals'),
+        html.H5(children='Signals', style={'textAlign': 'center', 'font-weight': 'bold'}),
+        dcc.Graph(
+            id='signals-graph',
+            figure={
+                'data': [
+                    {'x': [1], 'y': [main_signals], 'type': 'bar', 'name': 'Main'},
+                    {'x': [2], 'y': [distant_signal], 'type': 'bar', 'name': 'Distant'},
+                    {'x': [3], 'y': [shunting_signal], 'type': 'bar', 'name': 'Shunting'},
+                    {'x': [4], 'y': [speed_limit_signal], 'type': 'bar', 'name': 'Speed Limit'},
+                    {'x': [5], 'y': [speed_limit_distant_signal], 'type': 'bar', 'name': 'Speed Limit Distant'},
+                ],
+                'layout': {
+                    'title': 'Signals Graph'
+                }
+            }
+        ),
         dash_table.DataTable(
             id="dataTable2",
             style_data={'whiteSpace': 'normal'},
@@ -199,7 +246,7 @@ def parse_contents(contents, filename, date):
 
         html.Hr(),  # horizontal line
 
-        html.H6(children='Switches'),
+        html.H5(children='Switches', style={'textAlign': 'center', 'font-weight': 'bold'}),
         dash_table.DataTable(
             id="dataTableSwitch",
             style_data={'whiteSpace': 'normal'},
@@ -212,7 +259,7 @@ def parse_contents(contents, filename, date):
 
         html.Hr(),  # horizontal line
 
-        html.H6(children='Tracks'),
+        html.H5(children='Tracks', style={'textAlign': 'center', 'font-weight': 'bold'}),
         dash_table.DataTable(
             id="dataTableTracks",
             style_data={'whiteSpace': 'normal'},
@@ -225,7 +272,7 @@ def parse_contents(contents, filename, date):
 
         html.Hr(),  # horizontal line
 
-        html.H6(children='Level Crossings'),
+        html.H5(children='Level Crossings', style={'textAlign': 'center', 'font-weight': 'bold'}),
         dash_table.DataTable(
             id="dataTableLX",
             style_data={'whiteSpace': 'normal'},
