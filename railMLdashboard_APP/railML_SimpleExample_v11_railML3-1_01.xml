@@ -633,7 +633,7 @@
       <switches>
         <switch id="swi01" defaultCourse="right" type="ordinarySwitch">
           <name name="68W02"/>
-          <spotLocation id="swi01_sloc01" netElementRef="ne_a03" applicationDirection="reverse" pos="0.0">
+          <spotLocation id="swi01_sloc01" netElementRef="ne_a03" applicationDirection="reverse" pos="150.0">
             <linearCoordinate positioningSystemRef="lps01" measure="500.0"/>
           </spotLocation>
           <leftBranch netRelationRef="nr_a02a03" speedBranching="60" speedJoining="60" radius="-500"/>
@@ -649,7 +649,7 @@
         </switch>
         <switch id="swi03" defaultCourse="left" type="ordinarySwitch">
           <name name="69W04"/>
-          <spotLocation id="swi03_sloc01" netElementRef="ne_b02" applicationDirection="normal" pos="0.0">
+          <spotLocation id="swi03_sloc01" netElementRef="ne_b02" applicationDirection="normal" pos="340.0">
             <linearCoordinate positioningSystemRef="lps01" measure="4.550"/>
           </spotLocation>
           <leftBranch netRelationRef="nr_b02b05" speedBranching="60" speedJoining="60" radius="0"/>

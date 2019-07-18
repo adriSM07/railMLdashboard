@@ -68,18 +68,18 @@ app.layout = html.Div([
         multiple=False
     ),
     html.Div(id='output-data-upload'),
-    #dcc.Graph(
-     #   id='example-graph',
-      #  figure={
-       #     'data': [
-        #        {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
-         #       {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'MontrĂ©al'},
-          #  ],
-           # 'layout': {
-            #    'title': 'Dash Data Visualization'
-            #}
-        #}
-    #),
+    # dcc.Graph(
+    #   id='example-graph',
+    #  figure={
+    #     'data': [
+    #        {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
+    #       {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'MontrĂ©al'},
+    #  ],
+    # 'layout': {
+    #    'title': 'Dash Data Visualization'
+    # }
+    # }
+    # ),
     html.A(href='http://www.railml.org/en/', children='www.railml.org', style={'text-align': 'center'}),
 
 ])
@@ -108,8 +108,14 @@ def parse_contents(contents, filename, date):
             id_switch = []
             defaultCourse_switch = []
             type_switch = []
+            name_switch = []
+            pos_switch = []
+            num_switch = []
+            left_SpeedBranch = []
+            right_SpeedBranch = []
             id_track = []
             type_track = []
+            applicationDirection_track = []
             id_LX = []
             activation_LX = []
             name_LX = []
@@ -140,10 +146,22 @@ def parse_contents(contents, filename, date):
                                         id_switch.append(fourthChild_3.get('id'))
                                         defaultCourse_switch.append(fourthChild_3.get('defaultCourse'))
                                         type_switch.append(fourthChild_3.get('type'))
+                                        for eightChild in fourthChild_3:
+                                            if '{http://www.railml.org/schemas/3.1}name' == eightChild.tag:
+                                                name_switch.append((eightChild.get('name')))
+                                            elif '{http://www.railml.org/schemas/3.1}spotLocation' == eightChild.tag:
+                                                pos_switch.append(eightChild.get('pos'))
+                                            elif '{http://www.railml.org/schemas/3.1}leftBranch' == eightChild.tag:
+                                                left_SpeedBranch.append(eightChild.get('speedBranching'))
+                                            elif '{http://www.railml.org/schemas/3.1}rightBranch' == eightChild.tag:
+                                                right_SpeedBranch.append(eightChild.get('speedBranching'))
                                 elif '{http://www.railml.org/schemas/3.1}tracks' == thirdChild_2.tag:
                                     for fourthChild_4 in thirdChild_2:
                                         id_track.append(fourthChild_4.get('id'))
                                         type_track.append(fourthChild_4.get('type'))
+                                        for nineChild in fourthChild_4:
+                                            if '{http://www.railml.org/schemas/3.1}linearLocation' == nineChild.tag:
+                                                applicationDirection_track.append(nineChild.get('applicationDirection'))
                                 elif '{http://www.railml.org/schemas/3.1}levelCrossings' == thirdChild_2.tag:
                                     for fourthChild_5 in thirdChild_2:
                                         id_LX.append(fourthChild_5.get('id'))
@@ -180,12 +198,18 @@ def parse_contents(contents, filename, date):
                     speed_limit_distant_signal = speed_limit_distant_signal + 1
             # numSignal = go.Bar(x=1, y=len(id_signal), name='Signals')
             # SWITCH
-            switch = {"id": id_switch, "defaultCourse": defaultCourse_switch, "type": type_switch}
+            n = 0
+            for i in id_switch:
+                n = n + 1
+                num_switch.append(n)
+            switch = {"ID": id_switch, "Name": name_switch, "Default Course": defaultCourse_switch, "Type": type_switch,
+                      "Position": pos_switch, "Left Branch Speed": left_SpeedBranch,
+                      "Right Branch Speed": right_SpeedBranch}
             switchFrm: DataFrame = pd.DataFrame(switch)
             # numSwitch = go.Bar(x=2, y=len(id_switch), name='Switches')
             numElements = [len(id_signal), len(id_switch)]
-            #TRACKS
-            track = {"id": id_track,  "type": type_track}
+            # TRACKS
+            track = {"ID": id_track, "Type": type_track, "Direction": applicationDirection_track}
             trackFrm: DataFrame = pd.DataFrame(track)
             # LX
             levelCrossing = {"id": id_LX, "name": name_LX, "activation": activation_LX}
@@ -221,6 +245,20 @@ def parse_contents(contents, filename, date):
         html.Hr(),  # horizontal line
 
         html.H5(children='Signals', style={'textAlign': 'center', 'font-weight': 'bold'}),
+        dash_table.DataTable(
+            id="dataTable2",
+            style_data={'whiteSpace': 'normal'},
+            css=[{
+                'selector': '.dash-cell div.dash-cell-value',
+                'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
+            data=signalsFrm_2.to_dict('records'),
+            columns=[{'id': i, 'name': i} for i in signalsFrm_2.columns],
+            # style_as_list_view=True,
+            style_header={
+                'backgroundColor': 'white',
+                'fontWeight': 'bold'
+            },
+        ),
         dcc.Graph(
             id='signals-graph',
             figure={
@@ -237,45 +275,32 @@ def parse_contents(contents, filename, date):
             }
         ),
         dcc.Graph(
-          id='signal-scatter',
-          figure={
-              'data': [
-                  go.Scatter(
-                      x=pos_signal,
-                      y=pos_signal_Y,
-                      text=name_signal,
-                      mode='markers',
-                      opacity=0.7,
-                      marker={
-                          'size': 15,
-                          'line': {'width': 0.5, 'color': 'white'}
-                      },
-                  )
-              ],
-              'layout': go.Layout(
-                  title='Signals distribution',
-                  xaxis={'type': 'log', 'title': 'Position'},
-                  yaxis={'title': ''},
-                  #margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
-                  legend={'x': 0, 'y': 1},
-                  hovermode='closest'
-              )
-          }
+            id='signal-scatter',
+            figure={
+                'data': [
+                    go.Scatter(
+                        x=pos_signal,
+                        y=pos_signal_Y,
+                        text=name_signal,
+                        mode='markers',
+                        opacity=0.7,
+                        marker={
+                            'size': 15,
+                            'line': {'width': 0.5, 'color': 'white'}
+                        },
+                    )
+                ],
+                'layout': go.Layout(
+                    title='Signals distribution',
+                    xaxis={'type': 'log', 'title': 'Position'},
+                    yaxis={'title': ''},
+                    # margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                    legend={'x': 0, 'y': 1},
+                    hovermode='closest'
+                )
+            }
         ),
-        dash_table.DataTable(
-            id="dataTable2",
-            style_data={'whiteSpace': 'normal'},
-            css=[{
-                'selector': '.dash-cell div.dash-cell-value',
-                'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
-            data=signalsFrm_2.to_dict('records'),
-            columns=[{'id': i, 'name': i} for i in signalsFrm_2.columns],
-            # style_as_list_view=True,
-            style_header={
-                'backgroundColor': 'white',
-                'fontWeight': 'bold'
-            },
-        ),
+
 
         html.Hr(),  # horizontal line
 
@@ -288,6 +313,46 @@ def parse_contents(contents, filename, date):
                 'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
             data=switchFrm.to_dict('records'),
             columns=[{'id': i, 'name': i} for i in switchFrm.columns]
+        ),
+        dcc.Graph(
+            id='Switches-speeds-graph',
+            figure={
+                'data': [
+                    {'x': num_switch, 'y': left_SpeedBranch, 'type': 'bar', 'name': 'Left Speed'},
+                    {'x': num_switch, 'y': right_SpeedBranch, 'type': 'bar', 'name': 'Right Speed'},
+                ],
+                'layout': go.Layout(
+                    title='Switches Speeds Graph',
+                    xaxis={'title': 'Switch'},
+                    yaxis={'title': 'Speed'},
+                )
+            }
+        ),
+        dcc.Graph(
+            id='switch-scatter',
+            figure={
+                'data': [
+                    go.Scatter(
+                        x=pos_switch,
+                        y=num_switch,
+                        text=name_switch,
+                        mode='markers',
+                        opacity=0.7,
+                        marker={
+                            'size': 15,
+                            'line': {'width': 0.5, 'color': 'white'}
+                        },
+                    )
+                ],
+                'layout': go.Layout(
+                    title='Switch distribution',
+                    xaxis={'type': 'log', 'title': 'Position'},
+                    yaxis={'title': ''},
+                    # margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                    legend={'x': 0, 'y': 1},
+                    hovermode='closest'
+                )
+            }
         ),
 
         html.Hr(),  # horizontal line
