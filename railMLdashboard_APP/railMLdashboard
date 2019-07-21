@@ -115,10 +115,15 @@ def parse_contents(contents, filename, date):
             right_SpeedBranch = []
             id_track = []
             type_track = []
+            fromPos_tracks = []
+            toPos_tracks = []
+            length_tracks = []
             applicationDirection_track = []
             id_LX = []
             activation_LX = []
             name_LX = []
+            direction_LX = []
+            posLX = []
 
             for child_2 in root_2:
                 if '{http://www.railml.org/schemas/3.1}infrastructure' == child_2.tag:
@@ -162,6 +167,11 @@ def parse_contents(contents, filename, date):
                                         for nineChild in fourthChild_4:
                                             if '{http://www.railml.org/schemas/3.1}linearLocation' == nineChild.tag:
                                                 applicationDirection_track.append(nineChild.get('applicationDirection'))
+                                                for tenChild in nineChild:
+                                                    fromPos_tracks.append(tenChild.get('fromPos'))
+                                                    toPos_tracks.append(tenChild.get('toPos'))
+                                            elif '{http://www.railml.org/schemas/3.1}length' == nineChild.tag:
+                                                length_tracks.append(nineChild.get('value'))
                                 elif '{http://www.railml.org/schemas/3.1}levelCrossings' == thirdChild_2.tag:
                                     for fourthChild_5 in thirdChild_2:
                                         id_LX.append(fourthChild_5.get('id'))
@@ -169,6 +179,9 @@ def parse_contents(contents, filename, date):
                                         for fithChild in fourthChild_5:
                                             if '{http://www.railml.org/schemas/3.1}name' == fithChild.tag:
                                                 name_LX.append(fithChild.get('name'))
+                                            elif '{http://www.railml.org/schemas/3.1}spotLocation' == fithChild.tag:
+                                                direction_LX.append(fithChild.get('applicationDirection'))
+                                                posLX.append(fithChild.get('pos'))
                 elif '{http://www.railml.org/schemas/3.1}metadata' == child_2.tag:
                     for secondChild_3 in child_2:
                         if '{http://purl.org/dc/elements/1.1/}title' == secondChild_3.tag:
@@ -209,11 +222,32 @@ def parse_contents(contents, filename, date):
             # numSwitch = go.Bar(x=2, y=len(id_switch), name='Switches')
             numElements = [len(id_signal), len(id_switch)]
             # TRACKS
-            track = {"ID": id_track, "Type": type_track, "Direction": applicationDirection_track}
+            track = {"ID": id_track, "Type": type_track, "Direction": applicationDirection_track,
+                     "From Position": fromPos_tracks, "To Position": toPos_tracks, "Length": length_tracks}
             trackFrm: DataFrame = pd.DataFrame(track)
+            track_y = []
+            for i in range(len(fromPos_tracks)):
+                track_y.append(i+1)
+            main_track = 0
+            secondary_track = 0
+            sidingTrack = 0
+            connectingTrack = 0
+            for i in type_track:
+                if i == 'mainTrack':
+                    main_track = main_track + 1
+                elif i == 'secondaryTrack':
+                    secondary_track = secondary_track + 1
+                elif i == 'sidingTrack':
+                    sidingTrack = sidingTrack + 1
+                elif i == 'connectingTrack':
+                    connectingTrack = connectingTrack + 1
             # LX
-            levelCrossing = {"id": id_LX, "name": name_LX, "activation": activation_LX}
+            levelCrossing = {"ID": id_LX, "Name": name_LX, "Activation": activation_LX,
+                             "Direction": direction_LX, "Position": posLX}
             levelCrossingFrm: DataFrame = pd.DataFrame(levelCrossing)
+            posLX_y = []
+            for i in range(len(posLX)):
+                posLX_y.append(i+1)
 
     except Exception as e:
         print(e)
@@ -367,6 +401,33 @@ def parse_contents(contents, filename, date):
             data=trackFrm.to_dict('records'),
             columns=[{'id': i, 'name': i} for i in trackFrm.columns]
         ),
+        dcc.Graph(
+            id='Tracks-graph',
+            figure={
+                'data': [
+                    {'x': track_y, 'y': length_tracks, 'text': id_track, 'type': 'bar', 'name': 'Tracks Length'},
+                ],
+                'layout': go.Layout(
+                    title='Tracks Length Graph',
+                    xaxis={'title': 'Tracks'},
+                    yaxis={'title': 'Length'},
+                )
+            }
+        ),
+        dcc.Graph(
+            id='tracks_type_graph',
+            figure={
+                'data': [
+                    {'x': [1], 'y': [main_track], 'type': 'bar', 'name': 'Main'},
+                    {'x': [2], 'y': [secondary_track], 'type': 'bar', 'name': 'Secondary'},
+                    {'x': [3], 'y': [sidingTrack], 'type': 'bar', 'name': 'Siding'},
+                    {'x': [4], 'y': [connectingTrack], 'type': 'bar', 'name': 'Connecting'},
+                ],
+                'layout': {
+                    'title': 'Tracks Types Graph'
+                }
+            }
+        ),
 
         html.Hr(),  # horizontal line
 
@@ -379,6 +440,32 @@ def parse_contents(contents, filename, date):
                 'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
             data=levelCrossingFrm.to_dict('records'),
             columns=[{'id': i, 'name': i} for i in levelCrossingFrm.columns]
+        ),
+        dcc.Graph(
+            id='LX-scatter',
+            figure={
+                'data': [
+                    go.Scatter(
+                        x=posLX,
+                        y=posLX_y,
+                        text=name_LX,
+                        mode='markers',
+                        opacity=0.7,
+                        marker={
+                            'size': 15,
+                            'line': {'width': 0.5, 'color': 'white'}
+                        },
+                    )
+                ],
+                'layout': go.Layout(
+                    title='LX distribution',
+                    xaxis={'type': 'log', 'title': 'Position'},
+                    yaxis={'title': ''},
+                    # margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                    legend={'x': 0, 'y': 1},
+                    hovermode='closest'
+                )
+            }
         ),
 
         html.Hr(),  # horizontal line

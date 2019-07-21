@@ -349,6 +349,13 @@
           </spotLocation>
           <protection barriers="singleHalfBarrier" lights="none" acoustic="none"/>
         </levelCrossing>
+		<levelCrossing id="lcr02" activation="infrastructureAutomatic">
+          <name name="LX Polatli Cstadt"/>
+          <spotLocation id="lcr02_sloc02" netElementRef="ne_x01" applicationDirection="both" pos="3500.0">
+            <linearCoordinate positioningSystemRef="lps01" measure="2500.00"/>
+          </spotLocation>
+          <protection barriers="singleHalfBarrier" lights="none" acoustic="none"/>
+        </levelCrossing>
       </levelCrossings>
       
       <lines>
@@ -681,10 +688,6 @@
         <track id="trc03" type="mainTrack">
           <linearLocation id="trc03_lloc01" applicationDirection="both">
             <associatedNetElement netElementRef="ne_a03" keepsOrientation="true" sequence="1" fromPos="0.0" toPos="200.0">
-            </associatedNetElement>
-            <associatedNetElement netElementRef="ne_x01" keepsOrientation="true" sequence="2" fromPos="0.0" toPos="3600.0">
-            </associatedNetElement>
-            <associatedNetElement netElementRef="ne_b03" keepsOrientation="true" sequence="3" fromPos="0.0" toPos="200.0">
             </associatedNetElement>
           </linearLocation>
           <trackBegin ref="swi01"/>
