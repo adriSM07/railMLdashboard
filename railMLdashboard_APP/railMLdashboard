@@ -1,0 +1,490 @@
+import base64
+import datetime
+import io
+
+import dash
+from dash.dependencies import Input, Output, State
+import dash_core_components as dcc
+import dash_html_components as html
+import dash_table
+import xml.etree.cElementTree as et
+import plotly.graph_objs as go
+
+import pandas as pd
+from pandas import DataFrame
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
+tree = et.parse('railML_SimpleExample_v11_railML3-1_01.xml')
+root = tree.getroot()
+id = []
+type = []
+
+for child in root:
+    if '{http://www.railml.org/schemas/3.1}infrastructure' == child.tag:
+        for secondChild in child:
+            if '{http://www.railml.org/schemas/3.1}functionalInfrastructure' == secondChild.tag:
+                for thirdChild in secondChild:
+                    if '{http://www.railml.org/schemas/3.1}signals' == thirdChild.tag:
+                        for fourthChild in thirdChild:
+                            id.append(fourthChild.get('id'))
+                            type.append(fourthChild.get('type'))
+
+signals = {"id": id, "type": type}
+signalsFrm: DataFrame = pd.DataFrame(signals)
+
+col = [{"id": i, "type": i} for i in signalsFrm.columns]
+print(col)
+
+app.layout = html.Div([
+    html.H1(children='RailMl Dashboard', style={'textAlign': 'center'}),
+    html.H3(children='Generate a dashboard from a RailML file', style={'textAlign': 'center'}),
+    # html.Div([
+    #     dash_table.DataTable(
+    #         id="dataTable",
+    #         data=signalsFrm.to_dict('records'),
+    #         columns=[{"id": i, "name": i} for i in signalsFrm.columns],
+    #     )
+    # ]),
+    dcc.Upload(
+        id='upload-data',
+        children=html.Div([
+            'Drag and Drop or ',
+            html.A('Select Files')
+        ]),
+        style={
+            'width': '100%',
+            'height': '60px',
+            'lineHeight': '60px',
+            'borderWidth': '1px',
+            'borderStyle': 'dashed',
+            'borderRadius': '5px',
+            'textAlign': 'center',
+            'margin': '10px'
+        },
+        # Allow multiple files to be uploaded
+        multiple=False
+    ),
+    html.Div(id='output-data-upload'),
+    # dcc.Graph(
+    #   id='example-graph',
+    #  figure={
+    #     'data': [
+    #        {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
+    #       {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'MontrĂ©al'},
+    #  ],
+    # 'layout': {
+    #    'title': 'Dash Data Visualization'
+    # }
+    # }
+    # ),
+    html.A(href='http://www.railml.org/en/', children='www.railml.org', style={'text-align': 'center'}),
+
+])
+
+
+def parse_contents(contents, filename, date):
+    # content_type, content_string = contents.split(',')
+    #
+    # decoded = base64.b64decode(content_string)
+
+    try:
+        if 'xml' in filename:
+            # Assume that the user uploaded a XML file
+            # tree_2 = et.parse(io.StringIO(decoded.decode('utf-8')))
+            tree_2 = et.parse(filename)
+            root_2 = tree_2.getroot()
+            projectName = ''
+            num = 0
+            id_signal = []
+            type_signal = []
+            name_signal = []
+            pos_signal = []
+            pos_signal_Y = []
+            pos_y = 0
+            dic_signal = {}
+            id_switch = []
+            defaultCourse_switch = []
+            type_switch = []
+            name_switch = []
+            pos_switch = []
+            num_switch = []
+            left_SpeedBranch = []
+            right_SpeedBranch = []
+            id_track = []
+            type_track = []
+            fromPos_tracks = []
+            toPos_tracks = []
+            length_tracks = []
+            applicationDirection_track = []
+            id_LX = []
+            activation_LX = []
+            name_LX = []
+            direction_LX = []
+            posLX = []
+
+            for child_2 in root_2:
+                if '{http://www.railml.org/schemas/3.1}infrastructure' == child_2.tag:
+                    for secondChild_2 in child_2:
+                        if '{http://www.railml.org/schemas/3.1}functionalInfrastructure' == secondChild_2.tag:
+                            for thirdChild_2 in secondChild_2:
+                                if '{http://www.railml.org/schemas/3.1}signals' == thirdChild_2.tag:
+                                    for fourthChild_2 in thirdChild_2:
+                                        id_signal.append(fourthChild_2.get('id'))
+                                        type_signal.append(fourthChild_2.get('type'))
+                                        for sixChild in fourthChild_2:
+                                            if '{http://www.railml.org/schemas/3.1}name' == sixChild.tag:
+                                                dic_signal.update({fourthChild_2.get('id'): sixChild.get('name')})
+                                                name_signal.append(sixChild.get('name'))
+                                            elif '{http://www.railml.org/schemas/3.1}spotLocation' != sixChild.tag and '{http://www.railml.org/schemas/3.1}speedSignal' != sixChild.tag and '{http://www.railml.org/schemas/3.1}etcsSignal' != sixChild.tag:
+                                                name_signal.append("-")
+                                        num = num + 1
+                                        if len(name_signal) != num:
+                                            name_signal.append('-')
+                                        for sevenChild in fourthChild_2:
+                                            if '{http://www.railml.org/schemas/3.1}spotLocation' == sevenChild.tag:
+                                                pos_signal.append(sevenChild.get('pos'))
+                                elif '{http://www.railml.org/schemas/3.1}switches' == thirdChild_2.tag:
+                                    for fourthChild_3 in thirdChild_2:
+                                        id_switch.append(fourthChild_3.get('id'))
+                                        defaultCourse_switch.append(fourthChild_3.get('defaultCourse'))
+                                        type_switch.append(fourthChild_3.get('type'))
+                                        for eightChild in fourthChild_3:
+                                            if '{http://www.railml.org/schemas/3.1}name' == eightChild.tag:
+                                                name_switch.append((eightChild.get('name')))
+                                            elif '{http://www.railml.org/schemas/3.1}spotLocation' == eightChild.tag:
+                                                pos_switch.append(eightChild.get('pos'))
+                                            elif '{http://www.railml.org/schemas/3.1}leftBranch' == eightChild.tag:
+                                                left_SpeedBranch.append(eightChild.get('speedBranching'))
+                                            elif '{http://www.railml.org/schemas/3.1}rightBranch' == eightChild.tag:
+                                                right_SpeedBranch.append(eightChild.get('speedBranching'))
+                                elif '{http://www.railml.org/schemas/3.1}tracks' == thirdChild_2.tag:
+                                    for fourthChild_4 in thirdChild_2:
+                                        id_track.append(fourthChild_4.get('id'))
+                                        type_track.append(fourthChild_4.get('type'))
+                                        for nineChild in fourthChild_4:
+                                            if '{http://www.railml.org/schemas/3.1}linearLocation' == nineChild.tag:
+                                                applicationDirection_track.append(nineChild.get('applicationDirection'))
+                                                for tenChild in nineChild:
+                                                    fromPos_tracks.append(tenChild.get('fromPos'))
+                                                    toPos_tracks.append(tenChild.get('toPos'))
+                                            elif '{http://www.railml.org/schemas/3.1}length' == nineChild.tag:
+                                                length_tracks.append(nineChild.get('value'))
+                                elif '{http://www.railml.org/schemas/3.1}levelCrossings' == thirdChild_2.tag:
+                                    for fourthChild_5 in thirdChild_2:
+                                        id_LX.append(fourthChild_5.get('id'))
+                                        activation_LX.append(fourthChild_5.get('activation'))
+                                        for fithChild in fourthChild_5:
+                                            if '{http://www.railml.org/schemas/3.1}name' == fithChild.tag:
+                                                name_LX.append(fithChild.get('name'))
+                                            elif '{http://www.railml.org/schemas/3.1}spotLocation' == fithChild.tag:
+                                                direction_LX.append(fithChild.get('applicationDirection'))
+                                                posLX.append(fithChild.get('pos'))
+                elif '{http://www.railml.org/schemas/3.1}metadata' == child_2.tag:
+                    for secondChild_3 in child_2:
+                        if '{http://purl.org/dc/elements/1.1/}title' == secondChild_3.tag:
+                            projectName = secondChild_3.text
+
+            # SIGNALS
+            signals_2 = {"ID": id_signal, "Type": type_signal, "Name": name_signal, "Position": pos_signal}
+            signalsFrm_2: DataFrame = pd.DataFrame(signals_2)
+            for i in pos_signal:
+                pos_y = pos_y + 1
+                pos_signal_Y.append(pos_y)
+            main_signals = 0
+            distant_signal = 0
+            shunting_signal = 0
+            speed_limit_signal = 0
+            speed_limit_distant_signal = 0
+            for i in type_signal:
+                if i == 'main':
+                    main_signals = main_signals + 1
+                elif i == 'distant':
+                    distant_signal = distant_signal + 1
+                elif i == 'shunting':
+                    shunting_signal = shunting_signal + 1
+                elif i == 'speed_limit':
+                    speed_limit_signal = speed_limit_signal + 1
+                elif i == 'speed_limit_distant':
+                    speed_limit_distant_signal = speed_limit_distant_signal + 1
+            # numSignal = go.Bar(x=1, y=len(id_signal), name='Signals')
+            # SWITCH
+            n = 0
+            for i in id_switch:
+                n = n + 1
+                num_switch.append(n)
+            switch = {"ID": id_switch, "Name": name_switch, "Default Course": defaultCourse_switch, "Type": type_switch,
+                      "Position": pos_switch, "Left Branch Speed": left_SpeedBranch,
+                      "Right Branch Speed": right_SpeedBranch}
+            switchFrm: DataFrame = pd.DataFrame(switch)
+            # numSwitch = go.Bar(x=2, y=len(id_switch), name='Switches')
+            numElements = [len(id_signal), len(id_switch)]
+            # TRACKS
+            track = {"ID": id_track, "Type": type_track, "Direction": applicationDirection_track,
+                     "From Position": fromPos_tracks, "To Position": toPos_tracks, "Length": length_tracks}
+            trackFrm: DataFrame = pd.DataFrame(track)
+            track_y = []
+            for i in range(len(fromPos_tracks)):
+                track_y.append(i+1)
+            main_track = 0
+            secondary_track = 0
+            sidingTrack = 0
+            connectingTrack = 0
+            for i in type_track:
+                if i == 'mainTrack':
+                    main_track = main_track + 1
+                elif i == 'secondaryTrack':
+                    secondary_track = secondary_track + 1
+                elif i == 'sidingTrack':
+                    sidingTrack = sidingTrack + 1
+                elif i == 'connectingTrack':
+                    connectingTrack = connectingTrack + 1
+            # LX
+            levelCrossing = {"ID": id_LX, "Name": name_LX, "Activation": activation_LX,
+                             "Direction": direction_LX, "Position": posLX}
+            levelCrossingFrm: DataFrame = pd.DataFrame(levelCrossing)
+            posLX_y = []
+            for i in range(len(posLX)):
+                posLX_y.append(i+1)
+
+    except Exception as e:
+        print(e)
+        return html.Div([
+            'There was an error processing this file.'
+        ])
+
+    plot = html.Div([
+        html.H4(children='Project Name: ' + projectName, style={'textAlign': 'center'}),
+        html.H5(children='File Name: ' + filename, style={'textAlign': 'center'}),
+        html.H6(children=datetime.datetime.fromtimestamp(date), style={'textAlign': 'center'}),
+        html.Hr(),  # horizontal line
+        html.H5(children='Overview', style={'textAlign': 'center', 'font-weight': 'bold'}),
+        dcc.Graph(
+            id='elements-graph',
+            figure={
+                'data': [
+                    {'x': [1], 'y': [len(id_signal)], 'type': 'bar', 'name': 'Signals'},
+                    {'x': [2], 'y': [len(id_switch)], 'type': 'bar', 'name': 'Switches'},
+                    {'x': [3], 'y': [len(id_track)], 'type': 'bar', 'name': 'Tracks'},
+                    {'x': [4], 'y': [len(id_LX)], 'type': 'bar', 'name': 'Level Crossings'},
+                ],
+                'layout': {
+                    'title': 'Elements Graph'
+                }
+            }
+        ),
+
+        html.Hr(),  # horizontal line
+
+        html.H5(children='Signals', style={'textAlign': 'center', 'font-weight': 'bold'}),
+        dash_table.DataTable(
+            id="dataTable2",
+            style_data={'whiteSpace': 'normal'},
+            css=[{
+                'selector': '.dash-cell div.dash-cell-value',
+                'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
+            data=signalsFrm_2.to_dict('records'),
+            columns=[{'id': i, 'name': i} for i in signalsFrm_2.columns],
+            # style_as_list_view=True,
+            style_header={
+                'backgroundColor': 'white',
+                'fontWeight': 'bold'
+            },
+        ),
+        dcc.Graph(
+            id='signals-graph',
+            figure={
+                'data': [
+                    {'x': [1], 'y': [main_signals], 'type': 'bar', 'name': 'Main'},
+                    {'x': [2], 'y': [distant_signal], 'type': 'bar', 'name': 'Distant'},
+                    {'x': [3], 'y': [shunting_signal], 'type': 'bar', 'name': 'Shunting'},
+                    {'x': [4], 'y': [speed_limit_signal], 'type': 'bar', 'name': 'Speed Limit'},
+                    {'x': [5], 'y': [speed_limit_distant_signal], 'type': 'bar', 'name': 'Speed Limit Distant'},
+                ],
+                'layout': {
+                    'title': 'Signals Graph'
+                }
+            }
+        ),
+        dcc.Graph(
+            id='signal-scatter',
+            figure={
+                'data': [
+                    go.Scatter(
+                        x=pos_signal,
+                        y=pos_signal_Y,
+                        text=name_signal,
+                        mode='markers',
+                        opacity=0.7,
+                        marker={
+                            'size': 15,
+                            'line': {'width': 0.5, 'color': 'white'}
+                        },
+                    )
+                ],
+                'layout': go.Layout(
+                    title='Signals distribution',
+                    xaxis={'type': 'log', 'title': 'Position'},
+                    yaxis={'title': ''},
+                    # margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                    legend={'x': 0, 'y': 1},
+                    hovermode='closest'
+                )
+            }
+        ),
+
+
+        html.Hr(),  # horizontal line
+
+        html.H5(children='Switches', style={'textAlign': 'center', 'font-weight': 'bold'}),
+        dash_table.DataTable(
+            id="dataTableSwitch",
+            style_data={'whiteSpace': 'normal'},
+            css=[{
+                'selector': '.dash-cell div.dash-cell-value',
+                'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
+            data=switchFrm.to_dict('records'),
+            columns=[{'id': i, 'name': i} for i in switchFrm.columns]
+        ),
+        dcc.Graph(
+            id='Switches-speeds-graph',
+            figure={
+                'data': [
+                    {'x': num_switch, 'y': left_SpeedBranch, 'type': 'bar', 'name': 'Left Speed'},
+                    {'x': num_switch, 'y': right_SpeedBranch, 'type': 'bar', 'name': 'Right Speed'},
+                ],
+                'layout': go.Layout(
+                    title='Switches Speeds Graph',
+                    xaxis={'title': 'Switch'},
+                    yaxis={'title': 'Speed'},
+                )
+            }
+        ),
+        dcc.Graph(
+            id='switch-scatter',
+            figure={
+                'data': [
+                    go.Scatter(
+                        x=pos_switch,
+                        y=num_switch,
+                        text=name_switch,
+                        mode='markers',
+                        opacity=0.7,
+                        marker={
+                            'size': 15,
+                            'line': {'width': 0.5, 'color': 'white'}
+                        },
+                    )
+                ],
+                'layout': go.Layout(
+                    title='Switch distribution',
+                    xaxis={'type': 'log', 'title': 'Position'},
+                    yaxis={'title': ''},
+                    # margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                    legend={'x': 0, 'y': 1},
+                    hovermode='closest'
+                )
+            }
+        ),
+
+        html.Hr(),  # horizontal line
+
+        html.H5(children='Tracks', style={'textAlign': 'center', 'font-weight': 'bold'}),
+        dash_table.DataTable(
+            id="dataTableTracks",
+            style_data={'whiteSpace': 'normal'},
+            css=[{
+                'selector': '.dash-cell div.dash-cell-value',
+                'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
+            data=trackFrm.to_dict('records'),
+            columns=[{'id': i, 'name': i} for i in trackFrm.columns]
+        ),
+        dcc.Graph(
+            id='Tracks-graph',
+            figure={
+                'data': [
+                    {'x': track_y, 'y': length_tracks, 'text': id_track, 'type': 'bar', 'name': 'Tracks Length'},
+                ],
+                'layout': go.Layout(
+                    title='Tracks Length Graph',
+                    xaxis={'title': 'Tracks'},
+                    yaxis={'title': 'Length'},
+                )
+            }
+        ),
+        dcc.Graph(
+            id='tracks_type_graph',
+            figure={
+                'data': [
+                    {'x': [1], 'y': [main_track], 'type': 'bar', 'name': 'Main'},
+                    {'x': [2], 'y': [secondary_track], 'type': 'bar', 'name': 'Secondary'},
+                    {'x': [3], 'y': [sidingTrack], 'type': 'bar', 'name': 'Siding'},
+                    {'x': [4], 'y': [connectingTrack], 'type': 'bar', 'name': 'Connecting'},
+                ],
+                'layout': {
+                    'title': 'Tracks Types Graph'
+                }
+            }
+        ),
+
+        html.Hr(),  # horizontal line
+
+        html.H5(children='Level Crossings', style={'textAlign': 'center', 'font-weight': 'bold'}),
+        dash_table.DataTable(
+            id="dataTableLX",
+            style_data={'whiteSpace': 'normal'},
+            css=[{
+                'selector': '.dash-cell div.dash-cell-value',
+                'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'}],
+            data=levelCrossingFrm.to_dict('records'),
+            columns=[{'id': i, 'name': i} for i in levelCrossingFrm.columns]
+        ),
+        dcc.Graph(
+            id='LX-scatter',
+            figure={
+                'data': [
+                    go.Scatter(
+                        x=posLX,
+                        y=posLX_y,
+                        text=name_LX,
+                        mode='markers',
+                        opacity=0.7,
+                        marker={
+                            'size': 15,
+                            'line': {'width': 0.5, 'color': 'white'}
+                        },
+                    )
+                ],
+                'layout': go.Layout(
+                    title='LX distribution',
+                    xaxis={'type': 'log', 'title': 'Position'},
+                    yaxis={'title': ''},
+                    # margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                    legend={'x': 0, 'y': 1},
+                    hovermode='closest'
+                )
+            }
+        ),
+
+        html.Hr(),  # horizontal line
+    ])
+    return plot
+
+
+@app.callback(Output('output-data-upload', 'children'),
+              [Input('upload-data', 'contents')],
+              [State('upload-data', 'filename'),
+               State('upload-data', 'last_modified')])
+def update_output(list_of_contents, list_of_names, list_of_dates):
+    if list_of_contents is not None:
+        # children = [
+        #     parse_contents(c, n, d) for c, n, d in
+        #     zip(list_of_contents, list_of_names, list_of_dates)]
+        children = parse_contents(list_of_contents, list_of_names, list_of_dates)
+        return children
+
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
